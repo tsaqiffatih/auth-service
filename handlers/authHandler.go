@@ -4,16 +4,24 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/tsaqiffatih/auth-service/models"
 	"github.com/tsaqiffatih/auth-service/utils"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
+var validate *validator.Validate
+
+// Initialize validator instance
+func init() {
+	validate = validator.New()
+}
+
 func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		w.Header().Set("Content-Type", "aplication/json")
+		w.Header().Set("Content-Type", "application/json")
 
 		var user models.User
 		err := json.NewDecoder(r.Body).Decode(&user)
@@ -24,6 +32,35 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 				"error": map[string]interface{}{
 					"code":    http.StatusBadRequest,
 					"message": "Invalid request payload",
+				},
+			})
+			return
+		}
+
+		// Validation using validator from model
+		err = validate.Struct(user)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"status": "fail",
+				"error": map[string]interface{}{
+					"code":    http.StatusBadRequest,
+					"message": err.Error(),
+				},
+			})
+			return
+		}
+
+		//cheking is user already exist?
+		var existingUser models.User
+		result := db.Where("email = ?", user.Email).First(&existingUser)
+		if result.RowsAffected > 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"status": "fail",
+				"error": map[string]interface{}{
+					"code":    http.StatusBadRequest,
+					"message": "Email already exists",
 				},
 			})
 			return
@@ -44,8 +81,8 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 		}
 		user.Password = string(hashedPassword)
 
-		//Save user to DB
-		result := db.Create(&user)
+		// Save user to DB
+		result = db.Create(&user)
 		if result.Error != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(map[string]interface{}{
@@ -71,8 +108,8 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 
 		var creds struct {
-			Username string
-			Password string
+			Email    string `json:"email" validate:"required,email"`
+			Password string `json:"password" validate:"required"`
 		}
 
 		err := json.NewDecoder(r.Body).Decode(&creds)
@@ -89,8 +126,23 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
+		// validation input login
+		err = validate.Struct(creds)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"status": "fail",
+				"error": map[string]interface{}{
+					"code":    http.StatusBadRequest,
+					"message": err.Error(),
+				},
+			})
+			return
+		}
+
+		// find user with existing users email
 		var user models.User
-		result := db.Where("username = ?", creds.Username).First(&user)
+		result := db.Where("email = ?", creds.Email).First(&user)
 		if result.Error != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(map[string]interface{}{
@@ -103,7 +155,7 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		//Check password
+		//Check password using bcrypt
 		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
