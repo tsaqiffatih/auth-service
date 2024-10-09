@@ -40,11 +40,12 @@ func LoadPublicKey(path string) error {
 	return nil
 }
 
-func GenerateJWT(encryptedID string, email string) (string, error) {
+func GenerateJWT(encryptedID string, email string, role string) (string, error) {
 
 	claims := jwt.MapClaims{
 		"id":    encryptedID,
 		"email": email,
+		"role":  role,
 		"exp":   time.Now().Add(time.Hour * 72).Unix(), // token valid for 3 days
 	}
 
