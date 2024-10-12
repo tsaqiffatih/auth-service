@@ -25,5 +25,3 @@ vendor/
 Thumbs.db
 
 .env
-private.key
-public.key

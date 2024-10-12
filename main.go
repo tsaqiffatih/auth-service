@@ -6,20 +6,15 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/tsaqiffatih/auth-service/config"
 	"github.com/tsaqiffatih/auth-service/routes"
-	"github.com/tsaqiffatih/auth-service/utils"
 )
 
 func main() {
-	err := utils.LoadPrivateKey("private.key")
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Gagal memuat private key: %v", err)
-	}
-
-	err = utils.LoadPublicKey("public.key")
-	if err != nil {
-		log.Fatalf("Gagal memuat public key: %v", err)
+		log.Fatal("Error loading .env file")
 	}
 
 	// Initialize database

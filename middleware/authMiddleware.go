@@ -42,7 +42,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Token valid, continue with the request
-		r.Header.Set("User", claims.Username)
+		r.Header.Set("User-Id", claims.ID)
+		r.Header.Set("User-Email", claims.Email)
+		r.Header.Set("User-Role", claims.Role)
 		next.ServeHTTP(w, r)
 	})
 }

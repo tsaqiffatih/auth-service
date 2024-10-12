@@ -16,10 +16,10 @@ var validRoles = []string{RoleOwner, RoleCashier, RoleAdmin}
 
 type User struct {
 	gorm.Model
-	Name     string `json:"name" validate:"required"`
-	Email    string `json:"email" gorm:"unique" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=6"`
-	Role     string `json:"role" validate:"required,oneof=owner cashier admin user"`
+	Name     string `json:"name" gorm:"not null" validate:"required"`
+	Email    string `json:"email" gorm:"unique;not null" validate:"required,email"`
+	Password string `json:"password" gorm:"not null" validate:"required,min=6"`
+	Role     string `json:"role" gorm:"not null" validate:"required,oneof=owner cashier admin user"`
 }
 
 // func for validate user role

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/tsaqiffatih/auth-service/models"
@@ -169,22 +170,8 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		// Encrypt user.ID before generating JWT
-		encryptedID, err := utils.EncryptID(user.ID)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"status": "fail",
-				"error": map[string]interface{}{
-					"code":    http.StatusInternalServerError,
-					"message": "Error encrypting user ID",
-				},
-			})
-			return
-		}
-
 		//Generate JWT token
-		tokenString, err := utils.GenerateJWT(encryptedID, user.Email, user.Role)
+		tokenString, err := utils.GenerateJWT(strconv.Itoa(int(user.ID)), user.Email, user.Role)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]interface{}{
